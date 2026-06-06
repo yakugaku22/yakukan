@@ -10,13 +10,15 @@ import { initializeApp } from "firebase/app";
 import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID",
+  apiKey: "AIzaSyDfePpwzHd60AFFp8E64OdFJlUxASa7o78",
+  authDomain: "yakukan.firebaseapp.com",
+  projectId: "yakukan",
+  storageBucket: "yakukan.firebasestorage.app",
+  messagingSenderId: "432046632862",
+  appId: "1:432046632862:web:24cf716d0f55317f5b308f",
+  measurementId: "G-DWD0DRX5EG"
 };
 
 const app = initializeApp(firebaseConfig);
