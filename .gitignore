@@ -26,3 +26,29 @@ yarn-error.log*
 
 # Environment files (local configs)
 /.env.*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 依存・ログ
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# 環境変数
+.env
+.env.local
+
+# Capacitor / iOS ビルド成果物
+ios/App/Pods/
+ios/App/build/
+ios/App/App/public/
+DerivedData/
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+
+# ── 任意 ──
+# 実際のFirebase設定をリポジトリに載せたくない場合は、次の行のコメントを外す
+# （その場合は firebase-config.example.js などテンプレートを別途用意してください）
+# js/firebase-config.js
