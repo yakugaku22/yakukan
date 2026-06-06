@@ -19,7 +19,7 @@ export function renderSettings(container, ctx) {
 
       <div class="field">
         <label>ニックネーム（表示名）</label>
-        <input id="nick" type="text" maxlength="20" placeholder="例）はるか" value="${esc(cur.nickname)}" />
+        <input id="nick" type="text" maxlength="20" placeholder="例）花子" value="${esc(cur.nickname)}" />
       </div>
 
       <div class="field">
