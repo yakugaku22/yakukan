@@ -27,15 +27,25 @@ export async function saveUserSettings(uid, { nickname, grade, mode }) {
 }
 
 // ---------- 学習セッション（アプリの心臓）----------
-// session = { mode, zone?, category?, subject, durationSec, date, memo }
+// session = { mode, zone?, category?, subject, durationSec, date, source?, memo }
+//   category … 国試の問題区分（必須/理論/実践）。任意なので無いこともある
+//   source   … 教材・模試などのメモ（任意）
 export async function addSession(uid, session) {
   const col = collection(db, "users", uid, "sessions");
   return await addDoc(col, { ...session, createdAt: serverTimestamp() });
 }
 
-export async function updateMemo(uid, sessionId, memo) {
-  await updateDoc(doc(db, "users", uid, "sessions", sessionId), { memo });
+// 記録の一部フィールドを更新（メモ・教材メモなど）
+export async function updateSession(uid, sessionId, fields) {
+  await updateDoc(doc(db, "users", uid, "sessions", sessionId), fields);
 }
+
+// 互換用：メモだけ更新
+export async function updateMemo(uid, sessionId, memo) {
+  await updateSession(uid, sessionId, { memo });
+}
+
+// 記録を削除
 export async function deleteSession(uid, sessionId) {
   await deleteDoc(doc(db, "users", uid, "sessions", sessionId));
 }
