@@ -50,7 +50,7 @@ function render() {
   // シェル（ヘッダー＋下部ナビ）
   app.innerHTML = `
     <header class="app-header">
-      <div class="brand"><span class="mark">薬官</span><span class="sub">yakukan</span></div>
+      <div class="brand"><span class="mark">Yakukan</span></div>
       <div class="greeting"><b>${esc(state.settings.nickname)}</b>さん</div>
     </header>
     <div id="screen"></div>
