@@ -6,7 +6,7 @@
 import { db } from "./firebase-config.js";
 import {
   doc, getDoc, setDoc,
-  collection, addDoc, updateDoc,
+  collection, addDoc, updateDoc, deleteDoc,
   query, where, orderBy, getDocs,
   serverTimestamp,
 } from "firebase/firestore";
@@ -35,6 +35,9 @@ export async function addSession(uid, session) {
 
 export async function updateMemo(uid, sessionId, memo) {
   await updateDoc(doc(db, "users", uid, "sessions", sessionId), { memo });
+}
+export async function deleteSession(uid, sessionId) {
+  await deleteDoc(doc(db, "users", uid, "sessions", sessionId));
 }
 
 // 今のモードだけ・期間で絞ってセッション取得（グラフ＆カレンダー両用）
