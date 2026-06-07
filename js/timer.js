@@ -1,6 +1,7 @@
 // ===========================================================
-// 学習計測画面：ストップウォッチ / タイマー → 終了 → メモ → 記録(Firestore)
-// 記録後はカレンダーへ。保存は「記録する」を押したときだけ（自動保存なし）。
+// 学習計測画面：ストップウォッチ / タイマー → 終了 → 記録(Firestore)
+// 記録画面で「問題区分(任意)」と「教材・模試メモ(任意)」も入力できる。
+// 保存は「記録する」を押したときだけ（自動保存なし）。
 // ===========================================================
 
 import { addSession } from "./store.js";
@@ -32,7 +33,7 @@ export function renderStudy(container, ctx) {
         <button class="link" id="back" style="float:left;">← 選びなおす</button>
         <div style="clear:both; height:6px;"></div>
         <span class="study-target"><span class="dot" style="background:${color}"></span>${esc(target.subject)}</span>
-        <p class="subtitle" style="margin-top:8px;">${esc(target.mode === "CBT" ? "CBT" : "国試")}${target.category ? " / " + esc(target.category) + "問題" : ""}</p>
+        <p class="subtitle" style="margin-top:8px;">${esc(target.mode === "CBT" ? "CBT" : "国試")}</p>
       </div>
 
       <div class="timer-tabs">
@@ -101,16 +102,21 @@ export function renderStudy(container, ctx) {
     };
   });
 
-  // 終了 → メモ入力 → 記録
+  // 終了 → 記録画面
   $("#finish").onclick = () => {
     pause();
     const dur = timing === "timer" ? Math.min(elapsed(), presetSec) : elapsed();
-    const sec = Math.round(dur);
-    showRecord(sec);
+    showRecord(Math.round(dur));
   };
 
   function showRecord(sec) {
     clearStudyTimer();
+    let category = null;                       // 問題区分（任意。指定なし=null）
+    const isKokushi = target.mode === "国試";
+    // 実務は理論問題に出ないので、実務のときは「理論」を出さない
+    const cats = ["指定なし", "必須", "理論", "実践"]
+      .filter((c) => !(c === "理論" && target.subject === "実務"));
+
     container.innerHTML = `
       <div class="screen reveal">
         <h1 class="title">学習を記録する</h1>
@@ -125,6 +131,19 @@ export function renderStudy(container, ctx) {
           <div class="tile-note">${esc(todayStr())}</div>
         </div>
 
+        ${isKokushi ? `
+        <div class="field">
+          <label>問題区分（任意）</label>
+          <div class="chip-grid" id="cats">
+            ${cats.map((c, i) => `<button class="chip ${i === 0 ? "active" : ""}" data-c="${c}">${c}</button>`).join("")}
+          </div>
+        </div>` : ""}
+
+        <div class="field">
+          <label>教材・模試など（任意）</label>
+          <input id="source" type="text" placeholder="例）2023年度 第3回模試 やり直し" />
+        </div>
+
         <div class="field">
           <label>学習ポイントメモ（あとで編集できます）</label>
           <textarea class="memo" id="memo" placeholder="今日わかったこと・苦手だったところなど"></textarea>
@@ -135,26 +154,37 @@ export function renderStudy(container, ctx) {
         <button class="btn btn-ghost" id="cancel" style="margin-top:10px;">記録せずに戻る</button>
       </div>`;
 
-    container.querySelector("#cancel").onclick = () => ctx.go("home");
+    // 区分チップ（国試のみ）
+    if (isKokushi) {
+      container.querySelectorAll("#cats .chip").forEach((b) => {
+        b.onclick = () => {
+          category = b.dataset.c === "指定なし" ? null : b.dataset.c;
+          container.querySelectorAll("#cats .chip").forEach((x) => x.classList.toggle("active", x === b));
+        };
+      });
+    }
 
-    container.querySelector("#save").onclick = async () => {
-      if (sec < 1) { container.querySelector("#err").textContent = "計測時間がありません"; return; }
-      container.querySelector("#save").disabled = true;
+    $("#cancel").onclick = () => ctx.go("home");
+
+    $("#save").onclick = async () => {
+      if (sec < 1) { $("#err").textContent = "計測時間がありません"; return; }
+      $("#save").disabled = true;
       try {
         await addSession(ctx.uid, {
           mode: target.mode,
           zone: target.zone || null,
-          category: target.category || null,
+          category: category,                      // 国試の任意区分（CBTやnullなら無し）
           subject: target.subject,
           durationSec: sec,
           date: todayStr(),
-          memo: container.querySelector("#memo").value.trim(),
+          source: $("#source").value.trim(),       // 教材・模試メモ
+          memo: $("#memo").value.trim(),
         });
         toast("記録しました！");
         ctx.go("calendar");
       } catch (e) {
-        container.querySelector("#err").textContent = "保存に失敗しました。通信状況をご確認ください。";
-        container.querySelector("#save").disabled = false;
+        $("#err").textContent = "保存に失敗しました。通信状況をご確認ください。";
+        $("#save").disabled = false;
       }
     };
   }
