@@ -1,13 +1,11 @@
 // ===========================================================
-// ④ 国試対策画面：問題区分(必須/理論/実践) → 科目 → (物理化学生物はもう1段階) → 学習開始
-// 実務は理論には出ないので自動で除外される（subjects.js のルール）
+// ④ 国試対策画面：科目を直接えらぶ → 学習開始
+// 区分(必須/理論/実践)は「メニューの階層」ではなく、記録するときの任意タグにした。
+// （物理・化学・生物だけ、もう1段階えらぶ）
 // ===========================================================
 
-import { KOKUSHI_CATEGORIES, KOKUSHI_SUBJECTS, SOUMATOME, subjectsForCategory, colorForSubject }
-  from "./data/subjects.js";
+import { KOKUSHI_SUBJECTS, SOUMATOME } from "./data/subjects.js";
 import { esc } from "./util.js";
-
-const CAT_COLOR = { "必須": "#2E5A4E", "理論": "#5A6CA6", "実践": "#C0664F" };
 
 const tile = (color, title, note, onClick) => {
   const el = document.createElement("button");
@@ -35,61 +33,40 @@ export function renderKokushi(container, ctx, query = "") {
   container.className = "reveal";
   container.innerHTML = "";
 
-  const pick = (category, subject) => ctx.startStudy({ mode: "国試", category, subject });
+  // 区分は記録時に決めるので、ここでは科目だけ渡す
+  const pick = (subject) => ctx.startStudy({ mode: "国試", subject });
 
-  // --- 検索中：区分×科目のフラット表示（記録に必要な区分が一意に決まる）---
+  // --- 検索中：科目（物理化学生物は中身も）をフラット表示 ---
   if (q) {
     const matches = [];
-    KOKUSHI_CATEGORIES.forEach((cat) => {
-      subjectsForCategory(cat).forEach((s) => {
-        const leaves = s.children || [s.label];
-        leaves.forEach((leaf) => {
-          if (leaf.includes(q)) matches.push({ cat, leaf, color: s.color });
-        });
-      });
+    KOKUSHI_SUBJECTS.forEach((s) => {
+      const leaves = s.children || [s.label];
+      leaves.forEach((leaf) => { if (leaf.includes(q)) matches.push({ leaf, color: s.color }); });
     });
-    if (SOUMATOME.label.includes(q)) matches.push({ cat: null, leaf: SOUMATOME.label, color: SOUMATOME.color });
+    if (SOUMATOME.label.includes(q)) matches.push({ leaf: SOUMATOME.label, color: SOUMATOME.color });
     if (!matches.length) {
       container.innerHTML = `<div class="empty-state"><div class="big">該当なし</div>別のキーワードで探してみてください</div>`;
       return;
     }
-    matches.forEach((m) =>
-      container.appendChild(tile(m.color, m.leaf, m.cat ? `${m.cat}問題` : "横断学習", () => pick(m.cat, m.leaf)))
-    );
+    matches.forEach((m) => container.appendChild(tile(m.color, m.leaf, null, () => pick(m.leaf))));
     return;
   }
 
-  // --- 通常：区分一覧（必須・理論・実践）＋ 総まとめ ---
-  KOKUSHI_CATEGORIES.forEach((cat) =>
-    container.appendChild(tile(CAT_COLOR[cat], `${cat}問題`, `${cat}の科目をえらぶ`, () => openCategory(cat)))
-  );
-  container.appendChild(tile(SOUMATOME.color, SOUMATOME.label, "全範囲を横断して学習", () => pick(null, SOUMATOME.label)));
-
-  // 区分を開いて科目を選ぶ
-  function openCategory(cat) {
-    container.innerHTML = "";
-    backBtn(container, () => renderKokushi(container, ctx, ""));
-    const head = document.createElement("p");
-    head.className = "section-label"; head.style.marginTop = "0";
-    head.textContent = `${cat}問題`;
-    container.appendChild(head);
-
-    subjectsForCategory(cat).forEach((s) => {
-      if (s.children) {
-        // 物理・化学・生物 → もう1段階
-        container.appendChild(tile(s.color, s.label, s.children.join("・"), () => openChildren(cat, s)));
-      } else {
-        container.appendChild(tile(s.color, s.label, null, () => pick(cat, s.label)));
-      }
-    });
-  }
+  // --- 通常：科目を直接ならべる ---
+  KOKUSHI_SUBJECTS.forEach((s) => {
+    if (s.children) {
+      // 物理・化学・生物 → もう1段階
+      container.appendChild(tile(s.color, s.label, s.children.join("・"), () => openChildren(s)));
+    } else {
+      container.appendChild(tile(s.color, s.label, null, () => pick(s.label)));
+    }
+  });
+  container.appendChild(tile(SOUMATOME.color, SOUMATOME.label, "全範囲を横断して学習", () => pick(SOUMATOME.label)));
 
   // 物理・化学・生物の中身
-  function openChildren(cat, s) {
+  function openChildren(s) {
     container.innerHTML = "";
-    backBtn(container, () => openCategory(cat));
-    s.children.forEach((leaf) =>
-      container.appendChild(tile(s.color, leaf, `${cat}問題`, () => pick(cat, leaf)))
-    );
+    backBtn(container, () => renderKokushi(container, ctx, ""));
+    s.children.forEach((leaf) => container.appendChild(tile(s.color, leaf, null, () => pick(leaf))));
   }
 }
