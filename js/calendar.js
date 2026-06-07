@@ -3,7 +3,7 @@
 // 表示は今のモードだけ。
 // ===========================================================
 
-import { getSessions, groupByDate, updateMemo } from "./store.js";
+import { getSessions, groupByDate, updateMemo, deleteSession } from "./store.js";
 import { colorForSubject } from "./data/subjects.js";
 import { dateStr, todayStr, formatDuration, esc, toast, pad2 } from "./util.js";
 
