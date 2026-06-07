@@ -1,11 +1,11 @@
 // ===========================================================
-// カレンダー画面：その月の学習を一覧。日をタップで内容表示、メモ編集可。
-// 表示は今のモードだけ。
+// カレンダー画面：その月の学習を一覧。日をタップで表示/非表示（トグル）。
+// 各記録は 編集（メモ・教材メモ）/ 削除 ができる。表示は今のモードだけ。
 // ===========================================================
 
-import { getSessions, groupByDate, updateMemo, deleteSession } from "./store.js";
+import { getSessions, groupByDate, updateSession, deleteSession } from "./store.js";
 import { colorForSubject } from "./data/subjects.js";
-import { dateStr, todayStr, formatDuration, esc, toast, pad2 } from "./util.js";
+import { todayStr, formatDuration, esc, toast, pad2 } from "./util.js";
 
 const DOW = ["日", "月", "火", "水", "木", "金", "土"];
 
@@ -67,6 +67,7 @@ export function renderCalendar(container, ctx) {
       cell.className = `cal-cell ${items.length ? "has" : ""} ${isToday ? "today" : ""}`;
       cell.innerHTML = `<span>${d}</span>
         <span class="cal-dots">${colors.map((c) => `<span class="d" style="background:${c}"></span>`).join("")}</span>`;
+      // 同じ日をもう一度タップしたら閉じる（トグル）
       if (items.length) cell.onclick = () => {
         if (selected === ds) { selected = null; $("#dayList").innerHTML = ""; }
         else { selected = ds; drawDay(ds); }
@@ -86,23 +87,58 @@ export function renderCalendar(container, ctx) {
   function entryEl(s) {
     const el = document.createElement("div");
     el.className = "entry";
+    const catTag = s.category
+      ? `<span class="tile-note" style="font-weight:500;"> ・${esc(s.category)}</span>` : "";
+    const sourceLine = s.source
+      ? `<div class="tile-note" style="margin-bottom:4px;">教材・模試：${esc(s.source)}</div>` : "";
     el.innerHTML = `
       <div class="entry-top">
         <span class="dot" style="background:${colorForSubject(s.subject)}"></span>
-        <span class="sub">${esc(s.subject)}${s.category ? `<span class="tile-note" style="font-weight:500;"> ・${esc(s.category)}</span>` : ""}</span>
+        <span class="sub">${esc(s.subject)}${catTag}</span>
         <span class="dur">${formatDuration(s.durationSec)}</span>
       </div>
+      ${sourceLine}
       <div class="entry-memo">${esc(s.memo || "")}</div>
       <div class="btn-row" style="margin-top:8px;">
-        <button class="link" data-act="edit" style="font-size:0.8rem;">メモを編集</button>
+        <button class="link" data-act="edit" style="font-size:0.8rem;">編集</button>
         <button class="link" data-act="delete" style="font-size:0.8rem; color:var(--danger);">削除</button>
       </div>`;
-
-    el.querySelector('[data-act="edit"]').onclick = () => editMemo(el, s);
+    el.querySelector('[data-act="edit"]').onclick = () => editEntry(el, s);
     el.querySelector('[data-act="delete"]').onclick = () => deleteEntry(s);
     return el;
   }
 
+  // 編集：教材・模試メモ と 学習ポイントメモ をまとめて編集
+  function editEntry(el, s) {
+    el.innerHTML = `
+      <div class="entry-top">
+        <span class="dot" style="background:${colorForSubject(s.subject)}"></span>
+        <span class="sub">${esc(s.subject)}</span>
+        <span class="dur">${formatDuration(s.durationSec)}</span>
+      </div>
+      <input class="memo" id="src-edit" type="text" placeholder="教材・模試など（任意）"
+        value="${esc(s.source || "")}" style="min-height:0; margin-bottom:8px;" />
+      <textarea class="memo" id="memo-edit" style="min-height:70px;">${esc(s.memo || "")}</textarea>
+      <div class="btn-row" style="margin-top:8px;">
+        <button class="btn btn-primary btn-sm" data-act="save">保存</button>
+        <button class="btn btn-ghost btn-sm" data-act="cancel">やめる</button>
+      </div>`;
+    const src = el.querySelector("#src-edit");
+    const ta = el.querySelector("#memo-edit");
+    el.querySelector('[data-act="cancel"]').onclick = () => el.replaceWith(entryEl(s));
+    el.querySelector('[data-act="save"]').onclick = async () => {
+      const memo = ta.value.trim();
+      const source = src.value.trim();
+      try {
+        await updateSession(ctx.uid, s.id, { memo, source });
+        s.memo = memo; s.source = source;
+        el.replaceWith(entryEl(s));
+        toast("更新しました");
+      } catch (e) { toast("更新に失敗しました"); }
+    };
+  }
+
+  // 削除（確認あり）
   async function deleteEntry(s) {
     if (!confirm(`「${s.subject}」${formatDuration(s.durationSec)} の記録を削除しますか？`)) return;
     try {
@@ -115,31 +151,6 @@ export function renderCalendar(container, ctx) {
       else { selected = null; $("#dayList").innerHTML = ""; }
       toast("削除しました");
     } catch (e) { toast("削除に失敗しました"); }
-  }
-
-  function editMemo(el, s) {
-    el.innerHTML = `
-      <div class="entry-top">
-        <span class="dot" style="background:${colorForSubject(s.subject)}"></span>
-        <span class="sub">${esc(s.subject)}</span>
-        <span class="dur">${formatDuration(s.durationSec)}</span>
-      </div>
-      <textarea class="memo" style="min-height:70px;">${esc(s.memo || "")}</textarea>
-      <div class="btn-row" style="margin-top:8px;">
-        <button class="btn btn-primary btn-sm" data-act="save">保存</button>
-        <button class="btn btn-ghost btn-sm" data-act="cancel">やめる</button>
-      </div>`;
-    const ta = el.querySelector("textarea");
-    el.querySelector('[data-act="cancel"]').onclick = () => el.replaceWith(entryEl(s));
-    el.querySelector('[data-act="save"]').onclick = async () => {
-      const memo = ta.value.trim();
-      try {
-        await updateMemo(ctx.uid, s.id, memo);
-        s.memo = memo;
-        el.replaceWith(entryEl(s));
-        toast("メモを更新しました");
-      } catch (e) { toast("更新に失敗しました"); }
-    };
   }
 
   load();
