@@ -32,7 +32,7 @@ export function renderAuth(container) {
       <div class="screen auth-screen reveal">
         <div style="text-align:center; margin-bottom:8px;">
           <div class="brand" style="justify-content:center;">
-            <span class="mark">薬官</span><span class="sub">yakukan</span>
+            <span class="mark">Yakukan</span>
           </div>
         </div>
         <h1 class="title" style="text-align:center;">${signup ? "アカウント作成" : "ようこそ"}</h1>
