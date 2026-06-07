@@ -67,7 +67,10 @@ export function renderCalendar(container, ctx) {
       cell.className = `cal-cell ${items.length ? "has" : ""} ${isToday ? "today" : ""}`;
       cell.innerHTML = `<span>${d}</span>
         <span class="cal-dots">${colors.map((c) => `<span class="d" style="background:${c}"></span>`).join("")}</span>`;
-      if (items.length) cell.onclick = () => { selected = ds; drawDay(ds); };
+      if (items.length) cell.onclick = () => {
+        if (selected === ds) { selected = null; $("#dayList").innerHTML = ""; }
+        else { selected = ds; drawDay(ds); }
+      };
       grid.appendChild(cell);
     }
   }
