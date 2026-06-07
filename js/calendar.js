@@ -93,10 +93,28 @@ export function renderCalendar(container, ctx) {
         <span class="dur">${formatDuration(s.durationSec)}</span>
       </div>
       <div class="entry-memo">${esc(s.memo || "")}</div>
-      <button class="link" style="margin-top:8px; font-size:0.8rem;">メモを編集</button>`;
+      <div class="btn-row" style="margin-top:8px;">
+        <button class="link" data-act="edit" style="font-size:0.8rem;">メモを編集</button>
+        <button class="link" data-act="delete" style="font-size:0.8rem; color:var(--danger);">削除</button>
+      </div>`;
 
-    el.querySelector(".link").onclick = () => editMemo(el, s);
+    el.querySelector('[data-act="edit"]').onclick = () => editMemo(el, s);
+    el.querySelector('[data-act="delete"]').onclick = () => deleteEntry(s);
     return el;
+  }
+
+  async function deleteEntry(s) {
+    if (!confirm(`「${s.subject}」${formatDuration(s.durationSec)} の記録を削除しますか？`)) return;
+    try {
+      await deleteSession(ctx.uid, s.id);
+      const ds = s.date;
+      byDate[ds] = (byDate[ds] || []).filter((x) => x.id !== s.id);
+      if (byDate[ds].length === 0) delete byDate[ds];
+      drawGrid();
+      if (byDate[ds]) drawDay(ds);
+      else { selected = null; $("#dayList").innerHTML = ""; }
+      toast("削除しました");
+    } catch (e) { toast("削除に失敗しました"); }
   }
 
   function editMemo(el, s) {
