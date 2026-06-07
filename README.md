@@ -1,4 +1,4 @@
-# 薬官 -yakukan-
+# 薬管 -yakukan-
 
 CBT / 薬剤師国家試験の「勉強した時間を可視化する」学習管理アプリ。
 HTML / CSS / Vanilla JS（ES Modules）＋ Firebase（Auth + Firestore）。ビルド不要。
